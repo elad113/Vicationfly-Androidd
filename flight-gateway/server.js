@@ -4,7 +4,7 @@ const app = express();
 app.use(express.json({ limit: "64kb" }));
 
 const PORT = Number(process.env.PORT || 8080);
-const order = (process.env.PROVIDER_ORDER || "duffel,travelpayouts")
+const order = (process.env.PROVIDER_ORDER || "ignav,duffel,travelpayouts")
   .split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
 
 function validDate(x) { return /^\\d{4}-\\d{2}-\\d{2}$/.test(x || ""); }
@@ -69,6 +69,65 @@ async function duffel(req) {
   return offers.map(normalizeDuffelOffer).filter(Boolean);
 }
 
+async function ignav(req) {
+  const token = process.env.IGNAV_API_KEY;
+  if (!token) throw new Error("IGNAV_API_KEY is not configured");
+
+  const passengers = Math.max(1, Number(req.adults || 1));
+  const body = {
+    origin: req.origin,
+    destination: req.destination,
+    departure_date: req.departureDate,
+    cabin_class: String(req.cabin || "Economy").toLowerCase().replace(" ", "_"),
+    adults: passengers,
+    children: Number(req.children || 0),
+    market: "IL"
+  };
+
+  const path = req.tripType === "Round Trip" && req.returnDate ? "round-trip" : "one-way";
+  if (path === "round-trip") body.return_date = req.returnDate;
+
+  const r = await fetch("https://ignav.com/api/fares/" + path, {
+    method: "POST",
+    headers: {
+      "X-Api-Key": token,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error("Ignav HTTP " + r.status);
+
+  const j = await r.json();
+  return (j?.itineraries || []).map((it, index) => {
+    const out = it?.outbound;
+    const first = out?.segments?.[0];
+    const last = out?.segments?.[out?.segments?.length - 1];
+    const inbound = it?.inbound;
+    const inFirst = inbound?.segments?.[0];
+    const inLast = inbound?.segments?.[inbound?.segments?.length - 1];
+    return {
+      provider: "Ignav",
+      offerId: it.ignav_id || String(index),
+      airline: out?.carrier || first?.operating_carrier_name || "Airline",
+      carrier: first?.marketing_carrier_code || "",
+      origin: first?.departure_airport || req.origin,
+      destination: last?.arrival_airport || req.destination,
+      departAt: first?.departure_time_utc || first?.departure_time_local || "",
+      arriveAt: last?.arrival_time_utc || last?.arrival_time_local || "",
+      durationMinutes: Number(out?.duration_minutes || 0),
+      stops: Math.max(0, (out?.segments?.length || 1) - 1),
+      amount: String(it?.price?.amount ?? ""),
+      currency: it?.price?.currency || "USD",
+      returnDepartAt: inFirst ? (inFirst.departure_time_utc || inFirst.departure_time_local || "") : "",
+      returnArriveAt: inLast ? (inLast.arrival_time_utc || inLast.arrival_time_local || "") : "",
+      returnDurationMinutes: Number(inbound?.duration_minutes || 0),
+      returnStops: inbound ? Math.max(0, (inbound?.segments?.length || 1) - 1) : 0,
+      priceStatus: it?.price?.status || "unverified"
+    };
+  });
+}
+
 async function travelpayouts(req) {
   const token = process.env.TRAVELPAYOUTS_TOKEN;
   if (!token) throw new Error("TRAVELPAYOUTS_TOKEN is not configured");
@@ -102,7 +161,7 @@ async function travelpayouts(req) {
   return rows;
 }
 
-const providers = { duffel, travelpayouts };
+const providers = { ignav, duffel, travelpayouts };
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -110,7 +169,7 @@ app.get("/health", (_req, res) => {
     providers: order.map(name => ({
       name,
       configured: Boolean(
-        name === "duffel" ? process.env.DUFFEL_ACCESS_TOKEN :
+        name === "ignav" ? process.env.IGNAV_API_KEY :\n        name === "duffel" ? process.env.DUFFEL_ACCESS_TOKEN :
         name === "travelpayouts" ? process.env.TRAVELPAYOUTS_TOKEN : false
       )
     }))
