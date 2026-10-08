@@ -207,7 +207,8 @@ app.get("/health", (_req, res) => {
     providers: order.map(name => ({
       name,
       configured: Boolean(
-        name === "ignav" ? process.env.IGNAV_API_KEY :\n        name === "duffel" ? process.env.DUFFEL_ACCESS_TOKEN :
+        name === "ignav" ? process.env.IGNAV_API_KEY :
+        name === "duffel" ? process.env.DUFFEL_ACCESS_TOKEN :
         name === "travelpayouts" ? process.env.TRAVELPAYOUTS_TOKEN : false
       )
     }))
@@ -219,23 +220,13 @@ app.post("/v1/flights/seat-map", async (req, res) => {
   if (!token) return res.status(503).json({ error: "DUFFEL_ACCESS_TOKEN is not configured" });
   if (!req.body?.offerId) return res.status(400).json({ error: "offerId is required" });
   try {
-    const r = await fetch("https://api.duffel.com/air/seat_maps?offer_id=" + encodeURIComponent(req.body.offerId), {
-      headers: { "Authorization": "Bearer " + token, "Duffel-Version": "v2", "Accept": "application/json" }
-    });
-    const j = await r.json();
-    if (!r.ok) return res.status(r.status).json(j);
-    const seatMaps = (j?.data || []).map((m, i) => ({
-      segment: String(i + 1),
-      seats: (m?.cabins || []).flatMap(c => (c?.rows || []).flatMap(row => (row?.sections || []).flatMap(sec => (sec?.elements || []).filter(e => e?.type === "seat").map(e => ({
-        designator: e.designator || e.id || "?",
-        available: e.available === true,
-        name: e.name || "",
-        price: e.total_amount || "0",
-        currency: e.total_currency || ""
-      })))) )
-    }));
-    res.json({ seatMaps });
-  } catch (e) { res.status(502).json({ error: e.message }); }
+    const r = await fetch("https://api.duffel.com/air/seat_maps?offer_id=" + encodeURIComponent(req.body.offerId), { headers: { Authorization:"Bearer "+token, "Duffel-Version":"v2", Accept:"application/json" } });
+    const j = await r.json(); if(!r.ok) return res.status(r.status).json(j);
+    const seatMaps=(j?.data||[]).map((m,i)=>({segment:String(i+1),segmentId:m.segment_id||"",seats:(m?.cabins||[]).flatMap(c=>(c?.rows||[]).flatMap(row=>(row?.sections||[]).flatMap(sec=>(sec?.elements||[]).filter(e=>e?.type==="seat").map(e=>({
+      designator:e.designator||e.id||"?",available:Array.isArray(e.available_services)&&e.available_services.length>0,name:e.name||"",price:e.available_services?.[0]?.total_amount||"0",currency:e.available_services?.[0]?.total_currency||"",serviceIds:(e.available_services||[]).map(x=>x.id).filter(Boolean),passengerIds:(e.available_services||[]).map(x=>x.passenger_id).filter(Boolean)
+    })))))}));
+    res.json({seatMaps});
+  } catch(e){res.status(502).json({error:e.message});}
 });
 
 async function geocode(place) {
@@ -246,24 +237,20 @@ async function geocode(place) {
   return { latitude: Number(j[0].lat), longitude: Number(j[0].lon) };
 }
 
-app.post("/v1/hotels/search", async (req, res) => {
-  const token = process.env.DUFFEL_ACCESS_TOKEN;
-  if (!token) return res.status(503).json({ error: "DUFFEL_ACCESS_TOKEN is not configured" });
-  try {
-    const q = req.body || {};
-    const coords = q.latitude && q.longitude ? { latitude: Number(q.latitude), longitude: Number(q.longitude) } : await geocode(q.destination || "");
-    const checkIn = q.checkIn; const checkOut = q.checkOut;
-    if (!checkIn || !checkOut) return res.status(400).json({ error: "checkIn and checkOut are required" });
-    const guests = [];
-    for (let i=0;i<Math.max(1,Number(q.adults||1));i++) guests.push({type:"adult"});
-    for (let i=0;i<Math.max(0,Number(q.children||0));i++) guests.push({type:"child"});
-    const u = "https://api.duffel.com/stays/search";
-    const payload = { data: { rooms: Math.max(1,Number(q.rooms||1)), mobile:true, location:{radius:100,geographic_coordinates:coords}, check_in_date:checkIn, check_out_date:checkOut, guests, instant_payment:true } };
-    const r = await fetch(u,{method:"POST",headers:{"Authorization":"Bearer "+token,"Duffel-Version":"v2","Content-Type":"application/json"},body:JSON.stringify(payload)});
-    const j = await r.json(); if(!r.ok) return res.status(r.status).json(j);
-    const rows=(j?.data?.results||[]).map(x=>{const a=x.accommodation||{};const addr=a.location?.address||{};const photo=a.photos?.[0]?.url||"";return {searchResultId:x.id||"",name:a.name||"Hotel",photo,address:[addr.line_one,addr.postal_code].filter(Boolean).join(", "),city:addr.city_name||"",country:addr.country_code||"",description:a.description||"",rating:a.rating||0,reviewScore:a.review_score||0,price:x.cheapest_rate_total_amount||"",currency:x.cheapest_rate_currency||"USD",checkIn:x.check_in_date||checkIn,checkOut:x.check_out_date||checkOut,expiresAt:x.expires_at||""};});
-    res.json({ hotels:rows, after:j?.meta?.after||null });
-  } catch(e) { res.status(502).json({error:e.message}); }
+app.post("/v1/hotels/search", async (req,res)=>{
+  const q=req.body||{};const errors=[];
+  try{const hotels=await stayingapiHotels(q);if(hotels.length)return res.json({hotels,provider:"StayingAPI",fallbackUsed:false,after:null});errors.push("StayingAPI: no results");}catch(e){errors.push("StayingAPI: "+e.message);}
+  try{
+    const token=process.env.DUFFEL_ACCESS_TOKEN;if(!token)throw new Error("DUFFEL_ACCESS_TOKEN is not configured");
+    const coords=q.latitude&&q.longitude?{latitude:Number(q.latitude),longitude:Number(q.longitude)}:await geocode(q.destination||"");
+    const checkIn=q.checkIn,checkOut=q.checkOut;if(!checkIn||!checkOut)return res.status(400).json({error:"checkIn and checkOut are required"});
+    const guests=[];for(let i=0;i<Math.max(1,Number(q.adults||1));i++)guests.push({type:"adult"});for(let i=0;i<Math.max(0,Number(q.children||0));i++)guests.push({type:"child"});
+    const r=await fetch("https://api.duffel.com/stays/search",{method:"POST",headers:{Authorization:"Bearer "+token,"Duffel-Version":"v2","Content-Type":"application/json"},body:JSON.stringify({data:{rooms:Math.max(1,Number(q.rooms||1)),mobile:true,location:{radius:100,geographic_coordinates:coords},check_in_date:checkIn,check_out_date:checkOut,guests,instant_payment:true}})});
+    const j=await r.json();if(!r.ok)throw new Error("Duffel HTTP "+r.status);
+    const rows=(j?.data?.results||[]).map(x=>{const a=x.accommodation||{},addr=a.location?.address||{};return{searchResultId:x.id||"",name:a.name||"Hotel",photo:a.photos?.[0]?.url||"",address:[addr.line_one,addr.postal_code].filter(Boolean).join(", "),city:addr.city_name||"",country:addr.country_code||"",description:a.description||"",rating:a.rating||0,reviewScore:a.review_score||0,price:x.cheapest_rate_total_amount||"",currency:x.cheapest_rate_currency||"USD",checkIn:x.check_in_date||checkIn,checkOut:x.check_out_date||checkOut,expiresAt:x.expires_at||""};});
+    if(rows.length)return res.json({hotels:rows,provider:"Duffel",fallbackUsed:true,after:j?.meta?.after||null});errors.push("Duffel: no results");
+  }catch(e){errors.push("Duffel: "+e.message);}
+  res.status(503).json({error:"No hotel provider returned results.",providersTried:["StayingAPI","Duffel"],details:errors});
 });
 
 app.post("/v1/hotels/rates", async (req,res)=>{
