@@ -2,6 +2,8 @@ name: Build Vicationfly APK
 on:
   push:
     branches: [ main, vicationfly-premium-from-zero ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 jobs:
   build:
