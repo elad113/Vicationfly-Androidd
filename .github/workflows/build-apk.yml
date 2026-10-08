@@ -20,5 +20,5 @@ jobs:
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: Vicationfly-1.0.0-APK
+          name: Vicationfly-2.0.2-APK
           path: app/build/outputs/apk/debug/app-debug.apk
