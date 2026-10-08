@@ -1,5 +1,5 @@
 package com.vicationfly.premium;
-import android.app.*;import android.os.*;import android.content.*;import android.graphics.*;import android.graphics.drawable.*;import android.net.*;import android.view.*;import android.view.animation.*;import android.widget.*;import android.text.*;import java.text.*;import java.util.*;
+import android.app.*;import android.os.*;import android.animation.*;import android.content.*;import android.graphics.*;import android.graphics.drawable.*;import android.net.*;import android.view.*;import android.view.animation.*;import android.widget.*;import android.text.*;import java.text.*;import java.util.*;
 
 public class MainActivity extends Activity{
  final int O=Color.rgb(255,122,33),INK=Color.rgb(30,31,35),M=Color.rgb(112,116,124),BG=Color.rgb(255,250,246),LINE=Color.rgb(235,228,220); LinearLayout body;SharedPreferences db;Vication active;Uri image;String dep="",ret="",trip="Round Trip",cabin="Economy";int adults=1,children=0;ArrayList<A> airports=new ArrayList<>();
