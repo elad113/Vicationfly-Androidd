@@ -5,7 +5,7 @@ import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
-import android.view.View
+import android.view.Gravity
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -13,116 +13,129 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
     private lateinit var root: FrameLayout
-    private var web: WebView? = null
-    private var splash: TextView? = null
-    private val url = "https://vicationfly-8n1zpr.v2.appdeploy.ai/"
+    private var browser: WebView? = null
+    private val appUrl = "https://vicationfly-8n1zpr.v2.appdeploy.ai/"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = Color.rgb(255,247,239)
-        window.navigationBarColor = Color.rgb(255,247,239)
-        buildUi()
+        window.statusBarColor = Color.rgb(255,247,237)
+        window.navigationBarColor = Color.rgb(255,247,237)
+        root = FrameLayout(this)
+        root.setBackgroundColor(Color.rgb(255,247,237))
+        setContentView(root)
+        showLaunchScreen()
+        root.postDelayed({ openApp() }, 850)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun buildUi() {
-        root = FrameLayout(this)
-        root.setBackgroundColor(Color.rgb(255,247,239))
-        val browser = WebView(this)
-        web = browser
-        browser.setBackgroundColor(Color.rgb(255,247,239))
-        browser.overScrollMode = View.OVER_SCROLL_NEVER
-        browser.settings.apply {
+    private fun openApp() {
+        val web = WebView(this)
+        browser = web
+        web.setBackgroundColor(Color.rgb(255,247,237))
+        web.overScrollMode = WebView.OVER_SCROLL_NEVER
+        web.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            loadWithOverviewMode = true
+            loadsImagesAutomatically = true
             useWideViewPort = true
+            loadWithOverviewMode = true
             builtInZoomControls = false
             displayZoomControls = false
             mediaPlaybackRequiresUserGesture = true
             allowFileAccess = false
             allowContentAccess = false
         }
-        browser.webViewClient = object : WebViewClient() {
-            override fun onPageFinished(view: WebView, url: String) { hideSplash() }
+        web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                root.post { removeLaunchScreen() }
+            }
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-                if (request.isForMainFrame) showRetry()
+                if (request.isForMainFrame) showError()
             }
             override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
                 root.removeView(view)
                 view.destroy()
-                web = null
-                root.postDelayed({ if (!isFinishing && !isDestroyed) buildUi() }, 250)
+                browser = null
+                root.postDelayed({ if (!isFinishing && !isDestroyed) openApp() }, 300)
                 return true
             }
         }
-        root.addView(browser, FrameLayout.LayoutParams(-1, -1))
-        showSplash()
-        setContentView(root)
-        if (hasNetwork()) browser.loadUrl(url) else showRetry()
+        root.addView(web, FrameLayout.LayoutParams(-1, -1))
+        if (hasInternet()) web.loadUrl(appUrl) else showError()
     }
 
-    private fun showSplash() {
-        splash = TextView(this).apply {
-            text = "✈\nVicationfly\na whole vacation in one place"
-            textSize = 26f
-            gravity = 17
-            setTextColor(Color.rgb(255,122,0))
-            setBackgroundColor(Color.rgb(255,247,239))
-        }
-        root.addView(splash, FrameLayout.LayoutParams(-1, -1))
-    }
-
-    private fun hideSplash() {
-        splash?.animate()?.alpha(0f)?.setDuration(350)?.withEndAction {
-            splash?.let { root.removeView(it) }
-            splash = null
-        }?.start()
-    }
-
-    private fun showRetry() {
-        hideSplash()
-        val retry = TextView(this).apply {
-            text = "Vicationfly\n\nUnable to load right now.\nCheck your internet connection and tap here to retry."
-            textSize = 17f
-            gravity = 17
-            setTextColor(Color.rgb(125,78,48))
-            setBackgroundColor(Color.rgb(255,247,239))
-            setOnClickListener {
-                root.removeView(this)
-                web?.loadUrl(url) ?: buildUi()
+    private fun showLaunchScreen() {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(Color.rgb(255,247,237))
+            val icon = TextView(context).apply {
+                text = "✈"
+                textSize = 58f
+                gravity = Gravity.CENTER
+                setTextColor(Color.rgb(255,107,0))
             }
+            addView(icon, LinearLayout.LayoutParams(-1, 90))
+            val title = TextView(context).apply {
+                text = "Vicationfly"
+                textSize = 36f
+                gravity = Gravity.CENTER
+                setTextColor(Color.rgb(55,32,20))
+                setTypeface(typeface, 1)
+            }
+            addView(title, LinearLayout.LayoutParams(-1, 55))
+            val sub = TextView(context).apply {
+                text = "FLY • EXPLORE • ESCAPE"
+                textSize = 11f
+                letterSpacing = .18f
+                gravity = Gravity.CENTER
+                setTextColor(Color.rgb(174,113,72))
+            }
+            addView(sub, LinearLayout.LayoutParams(-1, 40))
         }
-        root.addView(retry, FrameLayout.LayoutParams(-1, -1))
+        root.addView(box, FrameLayout.LayoutParams(-1, -1))
     }
 
-    private fun hasNetwork(): Boolean {
+    private fun removeLaunchScreen() {
+        if (root.childCount > 1) root.removeViewAt(0)
+    }
+
+    private fun showError() {
+        while (root.childCount > 0) root.removeViewAt(0)
+        val message = TextView(this).apply {
+            text = "Vicationfly\n\nNo internet connection.\nTap to try again."
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(100,62,39))
+            setBackgroundColor(Color.rgb(255,247,237))
+            setOnClickListener { openApp() }
+        }
+        root.addView(message, FrameLayout.LayoutParams(-1, -1))
+    }
+
+    private fun hasInternet(): Boolean {
         val cm = getSystemService(ConnectivityManager::class.java) ?: return true
-        val network = cm.activeNetwork ?: return false
-        val caps = cm.getNetworkCapabilities(network) ?: return false
-        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        val n = cm.activeNetwork ?: return false
+        val c = cm.getNetworkCapabilities(n) ?: return false
+        return c.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    override fun onBackPressed() {
+        val web = browser
+        if (web?.canGoBack() == true) web.goBack() else super.onBackPressed()
     }
 
     override fun onDestroy() {
-        web?.apply {
-            stopLoading()
-            webViewClient = WebViewClient()
-            destroy()
-        }
-        web = null
+        browser?.apply { stopLoading(); webViewClient = WebViewClient(); destroy() }
+        browser = null
         super.onDestroy()
-    }
-
-    @Deprecated("Deprecated in Android 13; retained for older devices")
-    override fun onBackPressed() {
-        val browser = web
-        if (browser != null && browser.canGoBack()) browser.goBack() else super.onBackPressed()
     }
 }
