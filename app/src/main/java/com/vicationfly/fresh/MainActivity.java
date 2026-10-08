@@ -107,7 +107,7 @@ public class MainActivity extends Activity {
         body.addView(label("VICATION NAME")); body.addView(gap(5));
         EditText name=new EditText(this); name.setHint("Summer in London"); name.setTextSize(17); name.setSingleLine(); name.setPadding(17,0,17,0); name.setBackground(bg(Color.WHITE,20)); body.addView(name,lp(-1,60,0)); body.addView(gap(20));
         body.addView(label("COVER PICTURE")); body.addView(gap(8));
-        LinearLayout preview=card(Color.WHITE,24); preview.setGravity(Gravity.CENTER); TextView pt=tv("＋\nAdd a picture",17,MUTED); pt.setGravity(Gravity.CENTER); preview.addView(pt,lp(-1,180,0)); body.addView(preview,lp(-1,-2,0));
+        LinearLayout preview=card(Color.WHITE,24); preview.setGravity(Gravity.CENTER); TextView pt=tv("＋\nAdd a picture",17,MUTED); pt.setGravity(Gravity.CENTER); imagePreview.setVisibility(View.GONE); preview.addView(imagePreview,lp(-1,180,0)); preview.addView(pt,lp(-1,42,0)); body.addView(preview,lp(-1,-2,0));
         final String[] chosen={""};
         preview.setOnClickListener(v->pickImage(preview,pt,chosen)); body.addView(gap(28));
         Button save=button("Save Vication"); save.setTextSize(17); save.setOnClickListener(v->{
