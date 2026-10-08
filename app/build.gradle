@@ -1,16 +1,13 @@
 plugins { id 'com.android.application' }
 android {
-    namespace 'com.vicationfly.app'
+    namespace 'com.vicationfly.fresh'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.vicationfly.app'
-        minSdk 24
+        applicationId 'com.vicationfly.fresh'
+        minSdk 23
         targetSdk 35
         versionCode 1
         versionName '1.0.0'
-        buildConfigField "String", "FLIGHT_BACKEND_URL", '""'
-        buildConfigField "String", "STRIPE_PUBLISHABLE_KEY", '""'
-        buildConfigField "String", "PAYPAL_CLIENT_ID", '""'
     }
-    buildFeatures { buildConfig true }
 }
+dependencies { }
