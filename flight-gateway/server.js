@@ -4,7 +4,7 @@ const app = express();
 app.use(express.json({ limit: "64kb" }));
 
 const PORT = Number(process.env.PORT || 8080);
-const order = (process.env.PROVIDER_ORDER || "ignav,duffel,travelpayouts")
+const order = (process.env.PROVIDER_ORDER || "travelport,duffel,ignav,travelpayouts")
   .split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
 
 function validDate(x) { return /^\\d{4}-\\d{2}-\\d{2}$/.test(x || ""); }
@@ -141,6 +141,18 @@ async function ignav(req) {
   });
 }
 
+async function travelport(req) {
+  const clientId=process.env.TRAVELPORT_CLIENT_ID, clientSecret=process.env.TRAVELPORT_CLIENT_SECRET, username=process.env.TRAVELPORT_USERNAME, password=process.env.TRAVELPORT_PASSWORD, accessGroup=process.env.TRAVELPORT_ACCESSGROUP;
+  if(!clientId||!clientSecret||!username||!password)throw new Error("Travelport credentials are incomplete (client_id, client_secret, username and password required)");
+  if(!accessGroup)throw new Error("TRAVELPORT_ACCESSGROUP is not configured");
+  const auth=await fetch("https://auth.pp.travelport.net/oauth/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({grant_type:"password",username,password,client_id:clientId,client_secret:clientSecret})});
+  const aj=await auth.json();if(!auth.ok||!aj.access_token)throw new Error("Travelport auth HTTP "+auth.status);
+  const body={CatalogProductOfferingsQueryRequest:{offersPerPage:50,SearchCriteriaFlight:[{departureDate:req.departureDate,From:{value:req.origin},To:{value:req.destination}}],PassengerCriteria:[...Array.from({length:Math.max(1,Number(req.adults||1))},()=>({passengerTypeCode:"ADT"})),...Array.from({length:Math.max(0,Number(req.children||0))},()=>({passengerTypeCode:"CNN"}))]}};
+  const r=await fetch("https://api.pp.travelport.net/11/air/catalog/search/catalogproductofferings",{method:"POST",headers:{Authorization:"Bearer "+aj.access_token,"Content-Type":"application/json","Accept":"application/json","XAUTH_TRAVELPORT_ACCESSGROUP":accessGroup},body:JSON.stringify(body)});
+  const j=await r.json();if(!r.ok)throw new Error("Travelport search HTTP "+r.status);
+  const offers=j?.CatalogProductOfferingsResponse?.CatalogProductOfferingList?.CatalogProductOffering||[];
+  return offers.map((o,i)=>({provider:"Travelport",offerId:o.id||String(i),airline:o?.ProductBrandOptions?.[0]?.Product?.[0]?.FlightSegment?.[0]?.MarketingCarrier?.AirlineID||"Airline",carrier:o?.ProductBrandOptions?.[0]?.Product?.[0]?.FlightSegment?.[0]?.MarketingCarrier?.AirlineID||"",origin:req.origin,destination:req.destination,departAt:"",arriveAt:"",durationMinutes:0,stops:0,amount:String(o?.Price?.TotalPrice||""),currency:o?.Price?.CurrencyCode||"USD"}));
+}
 async function travelpayouts(req) {
   const token = process.env.TRAVELPAYOUTS_TOKEN;
   if (!token) throw new Error("TRAVELPAYOUTS_TOKEN is not configured");
@@ -199,7 +211,7 @@ async function stayingapiHotels(q) {
   }));
 }
 
-const providers = { ignav, duffel, travelpayouts };
+const providers = { travelport, ignav, duffel, travelpayouts };
 
 app.get("/health", (_req, res) => {
   res.json({
@@ -209,7 +221,7 @@ app.get("/health", (_req, res) => {
       configured: Boolean(
         name === "ignav" ? process.env.IGNAV_API_KEY :
         name === "duffel" ? process.env.DUFFEL_ACCESS_TOKEN :
-        name === "travelpayouts" ? process.env.TRAVELPAYOUTS_TOKEN : false
+        name === "travelpayouts" ? process.env.TRAVELPAYOUTS_TOKEN : name === "travelport" ? Boolean(process.env.TRAVELPORT_CLIENT_ID && process.env.TRAVELPORT_CLIENT_SECRET && process.env.TRAVELPORT_USERNAME && process.env.TRAVELPORT_PASSWORD && process.env.TRAVELPORT_ACCESSGROUP) : false
       )
     }))
   });
