@@ -1,108 +1,24 @@
 package com.vicationfly.app;
-
-import android.app.Activity;
-import android.graphics.Color;
-import android.os.Bundle;
-import android.view.Gravity;
-import android.view.View;
-import android.webkit.RenderProcessGoneDetail;
-import android.webkit.WebResourceError;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.FrameLayout;
-import android.widget.TextView;
-
-public class MainActivity extends Activity {
-    private static final String URL = "https://vicationfly-8n1zpr.v2.appdeploy.ai/";
-    private FrameLayout root;
-    private WebView web;
-
-    @Override public void onCreate(Bundle state) {
-        super.onCreate(state);
-        getWindow().setStatusBarColor(Color.rgb(255,247,237));
-        getWindow().setNavigationBarColor(Color.rgb(255,247,237));
-        root = new FrameLayout(this);
-        root.setBackgroundColor(Color.rgb(255,247,237));
-        setContentView(root);
-        showSplash();
-        root.postDelayed(new Runnable() { public void run() { createWebView(); } }, 350);
-    }
-
-    private void showSplash() {
-        TextView t = new TextView(this);
-        t.setText("✈\nVicationfly");
-        t.setTextSize(34);
-        t.setGravity(Gravity.CENTER);
-        t.setTextColor(Color.rgb(255,107,0));
-        t.setBackgroundColor(Color.rgb(255,247,237));
-        t.setTypeface(null, 1);
-        t.setId(1001);
-        root.addView(t, new FrameLayout.LayoutParams(-1,-1));
-    }
-
-    private void createWebView() {
-        if (isFinishing()) return;
-        final WebView w = new WebView(this);
-        web = w;
-        w.setBackgroundColor(Color.rgb(255,247,237));
-        w.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        WebSettings s = w.getSettings();
-        s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
-        s.setDatabaseEnabled(true);
-        s.setLoadsImagesAutomatically(true);
-        s.setLoadWithOverviewMode(true);
-        s.setUseWideViewPort(true);
-        s.setBuiltInZoomControls(false);
-        s.setDisplayZoomControls(false);
-        s.setMediaPlaybackRequiresUserGesture(true);
-        w.setWebViewClient(new WebViewClient() {
-            @Override public void onPageFinished(WebView view, String url) {
-                View splash = root.findViewById(1001);
-                if (splash != null) root.removeView(splash);
-            }
-            @Override public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
-                if (req.isForMainFrame()) showRetry();
-            }
-            @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-                root.removeView(view);
-                view.destroy();
-                web = null;
-                showRetry();
-                return true;
-            }
-        });
-        root.addView(w, new FrameLayout.LayoutParams(-1,-1));
-        w.loadUrl(URL);
-    }
-
-    private void showRetry() {
-        if (isFinishing()) return;
-        while (root.getChildCount() > 0) root.removeViewAt(0);
-        TextView t = new TextView(this);
-        t.setText("Vicationfly\n\nלא ניתן לטעון כרגע.\nלחץ כדי לנסות שוב");
-        t.setTextSize(18);
-        t.setGravity(Gravity.CENTER);
-        t.setTextColor(Color.rgb(70,45,30));
-        t.setBackgroundColor(Color.rgb(255,247,237));
-        t.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { createWebView(); }});
-        root.addView(t, new FrameLayout.LayoutParams(-1,-1));
-    }
-
-    @Override public void onBackPressed() {
-        if (web != null && web.canGoBack()) web.goBack(); else super.onBackPressed();
-    }
-
-    @Override protected void onDestroy() {
-        if (web != null) {
-            web.stopLoading();
-            web.setWebViewClient(null);
-            root.removeView(web);
-            web.destroy();
-            web = null;
-        }
-        super.onDestroy();
-    }
+import android.app.*;import android.os.*;import android.graphics.*;import android.graphics.drawable.GradientDrawable;import android.view.*;import android.view.inputmethod.InputMethodManager;import android.content.*;import android.widget.*;import android.text.*;import java.util.*;
+public class MainActivity extends Activity{
+ int O=Color.rgb(255,107,0),D=Color.rgb(35,38,45),C=Color.rgb(255,248,239),M=Color.rgb(112,114,120); LinearLayout content,search,results; EditText from,to; TextView dates; String dep="",ret=""; Random rnd=new Random(); ArrayList<String> airports=new ArrayList<>();
+ public void onCreate(Bundle b){super.onCreate(b);getWindow().setStatusBarColor(C);getWindow().setNavigationBarColor(C);data();splash();}
+ TextView t(String s,float z,int c){TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(c);return v;}
+ GradientDrawable bg(int c,float r){GradientDrawable g=new GradientDrawable();g.setColor(c);g.setCornerRadius(r);return g;}
+ LinearLayout box(int c,float r){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);l.setBackground(bg(c,r));return l;}
+ LinearLayout.LayoutParams p(int w,int h,float f){return new LinearLayout.LayoutParams(w,h,f);}
+ Button btn(String s){Button b=new Button(this);b.setText(s);b.setTextSize(15);b.setAllCaps(false);b.setTextColor(Color.WHITE);b.setBackground(bg(O,22));return b;}
+ void splash(){LinearLayout x=new LinearLayout(this);x.setOrientation(LinearLayout.VERTICAL);x.setGravity(Gravity.CENTER);x.setBackgroundColor(C);TextView a=t("✈",58,O);a.setGravity(17);TextView n=t("Vicationfly",34,D);n.setTypeface(Typeface.DEFAULT,1);n.setGravity(17);TextView q=t("Your next journey starts here",15,M);q.setGravity(17);x.addView(a);x.addView(n);x.addView(q);ProgressBar pr=new ProgressBar(this);x.addView(pr,p(50,50,0));setContentView(x);x.postDelayed(()->main(),700);}
+ void main(){ScrollView sv=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(22,20,22,25);content.setBackgroundColor(C);
+ TextView h=t("Vicationfly",31,D);h.setTypeface(Typeface.DEFAULT,1);content.addView(h,p(-1,55,0));content.addView(t("Find your next flight",18,M),p(-1,40,0));
+ search=box(Color.WHITE,28);search.setPadding(18,18,18,18);LinearLayout s=new LinearLayout(this);s.setOrientation(LinearLayout.VERTICAL);s.addView(t("FROM",11,O));from=field("Departure airport");s.addView(from,p(-1,58,0));s.addView(space(9));s.addView(t("TO",11,O));to=field("Arrival airport");s.addView(to,p(-1,58,0));s.addView(space(12));s.addView(t("ROUND TRIP",11,O));LinearLayout dr=new LinearLayout(this);dates=t("Select dates",16,D);dates.setGravity(Gravity.CENTER_VERTICAL);dr.addView(dates,p(0,55,1));Button db=btn("Choose");db.setOnClickListener(v->pick(false));dr.addView(db,p(105,52,0));s.addView(dr);s.addView(space(15));Button go=btn("Search flights");go.setTextSize(17);go.setOnClickListener(v->find());s.addView(go,p(-1,58,0));search.addView(s);content.addView(search,p(-1,-2,0));
+ results=new LinearLayout(this);results.setOrientation(LinearLayout.VERTICAL);results.setVisibility(View.GONE);content.addView(results,p(-1,-2,0));TextView foot=t("Vicationfly • Native Android",12,M);foot.setGravity(17);content.addView(foot,p(-1,45,0));sv.addView(content);setContentView(sv);}
+ Space space(int h){Space x=new Space(this);x.setLayoutParams(p(1,h,0));return x;}
+ EditText field(String hint){EditText e=new EditText(this);e.setHint(hint);e.setSingleLine();e.setTextSize(16);e.setPadding(16,0,16,0);e.setTextColor(D);e.setHintTextColor(Color.rgb(160,160,165));e.setBackground(bg(0xfff5f3ef,18));e.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int d){}public void afterTextChanged(Editable e){}public void onTextChanged(CharSequence s,int a,int b,int c){suggest(e,s.toString());}});return e;}
+ void suggest(EditText e,String q){LinearLayout par=(LinearLayout)e.getParent();int i=par.indexOfChild(e);if(i+1<par.getChildCount()&&"sug".equals(par.getChildAt(i+1).getTag()))par.removeViewAt(i+1);if(q.trim().isEmpty())return;ArrayList<String> m=new ArrayList<>();for(String a:airports)if(a.toLowerCase(Locale.US).startsWith(q.toLowerCase(Locale.US)))m.add(a);Collections.shuffle(m,rnd);int n=Math.min(5,m.size());if(n==0)return;LinearLayout b=box(Color.WHITE,16);b.setTag("sug");b.setPadding(4,4,4,4);for(int k=0;k<n;k++){String a=m.get(k);TextView v=t(a,15,D);v.setGravity(Gravity.CENTER_VERTICAL);v.setPadding(14,0,8,0);final String val=a;v.setOnClickListener(x->{e.setText(val);e.setSelection(val.length());b.setVisibility(View.GONE);});b.addView(v,p(-1,47,0));}par.addView(b,i+1,p(-1,-2,0));}
+ void pick(boolean retPick){Calendar c=Calendar.getInstance();DatePickerDialog d=new DatePickerDialog(this,(v,y,m,day)->{String z=String.format(Locale.US,"%02d/%02d/%04d",day,m+1,y);if(!retPick){dep=z;pick(true);}else{ret=z;dates.setText(dep+"  →  "+ret);}},c.get(1),c.get(2),c.get(5));d.setTitle(retPick?"Return date":"Departure date");d.show();}
+ void find(){if(from.getText().length()==0||to.getText().length()==0){Toast.makeText(this,"Choose both airports",0).show();return;}if(dep.isEmpty()||ret.isEmpty()){Toast.makeText(this,"Choose round-trip dates",0).show();return;}((InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(from.getWindowToken(),0);search.animate().scaleX(.92f).scaleY(.92f).translationY(-20).setDuration(300).withEndAction(()->{search.setVisibility(View.GONE);showResults();}).start();}
+ void showResults(){results.removeAllViews();results.setVisibility(View.VISIBLE);results.setAlpha(0);results.animate().alpha(1).setDuration(400).start();TextView h=t("Available flights",25,D);h.setTypeface(Typeface.DEFAULT,1);results.addView(h,p(-1,48,0));results.addView(t(from.getText()+"  →  "+to.getText(),15,M),p(-1,32,0));String[][] fs={{"Vication Air","VF 208","07:10","11:35","€129"},{"Skyline Airways","SK 421","10:25","15:05","€156"},{"Global Wings","GW 815","14:40","19:10","€143"},{"AeroLink","AL 092","19:15","00:20","€118"}};for(String[]f:fs)card(f);Button n=btn("New search");n.setOnClickListener(v->{results.setVisibility(View.GONE);search.setVisibility(View.VISIBLE);search.setScaleX(1);search.setScaleY(1);search.setTranslationY(0);});results.addView(n,p(-1,55,0));}
+ void card(String[]f){LinearLayout c=box(Color.WHITE,23);c.setPadding(15,12,10,12);LinearLayout r=new LinearLayout(this);r.setGravity(Gravity.CENTER_VERTICAL);LinearLayout inf=new LinearLayout(this);inf.setOrientation(LinearLayout.VERTICAL);inf.addView(t(f[0],13,M));TextView tm=t(f[2]+"  →  "+f[3],20,D);tm.setTypeface(Typeface.DEFAULT,1);inf.addView(tm);inf.addView(t(f[1]+"  •  1 stop",12,M));r.addView(inf,p(0,88,1));LinearLayout pr=new LinearLayout(this);pr.setOrientation(LinearLayout.VERTICAL);pr.setGravity(Gravity.CENTER);TextView price=t(f[4],20,O);price.setTypeface(Typeface.DEFAULT,1);pr.addView(price);Button b=btn("Book");b.setOnClickListener(v->Toast.makeText(this,"Booking selected: "+f[1],0).show());pr.addView(b,p(88,42,0));r.addView(pr,p(100,88,0));c.addView(r);results.addView(c,p(-1,-2,0));results.addView(space(9));}
+ void data(){String[]x={"Amsterdam Schiphol (AMS)","Athens International (ATH)","Ankara Esenboga (ESB)","Antalya (AYT)","Atlanta Hartsfield-Jackson (ATL)","Abu Dhabi Zayed (AUH)","Alicante (ALC)","Algiers (ALG)","Auckland (AKL)","Bangkok Suvarnabhumi (BKK)","Barcelona El Prat (BCN)","Beijing Capital (PEK)","Beirut (BEY)","Berlin Brandenburg (BER)","Boston Logan (BOS)","Brussels (BRU)","Bucharest (OTP)","Budapest (BUD)","Buenos Aires Ezeiza (EZE)","Cairo (CAI)","Cape Town (CPT)","Chicago O'Hare (ORD)","Copenhagen (CPH)","Dallas Fort Worth (DFW)","Delhi (DEL)","Denver (DEN)","Doha Hamad (DOH)","Dubai (DXB)","Dublin (DUB)","Frankfurt (FRA)","Geneva (GVA)","Helsinki (HEL)","Hong Kong (HKG)","Istanbul (IST)","Jakarta (CGK)","Johannesburg (JNB)","Kuala Lumpur (KUL)","Lisbon (LIS)","London Heathrow (LHR)","Los Angeles (LAX)","Madrid Barajas (MAD)","Manila (MNL)","Melbourne (MEL)","Mexico City (MEX)","Miami (MIA)","Milan Malpensa (MXP)","Montreal (YUL)","Munich (MUC)","New York JFK (JFK)","Osaka Kansai (KIX)","Oslo (OSL)","Paris Charles de Gaulle (CDG)","Perth (PER)","Philadelphia (PHL)","Prague (PRG)","Reykjavik (KEF)","Rome Fiumicino (FCO)","San Francisco (SFO)","Santiago (SCL)","Sao Paulo (GRU)","Seattle (SEA)","Seoul Incheon (ICN)","Singapore Changi (SIN)","Stockholm Arlanda (ARN)","Sydney (SYD)","Tel Aviv Ben Gurion (TLV)","Tokyo Haneda (HND)","Toronto Pearson (YYZ)","Vancouver (YVR)","Vienna (VIE)","Warsaw Chopin (WAW)","Washington Dulles (IAD)","Zurich (ZRH)","Kigali (KGL)","Lima (LIM)","Nairobi (NBO)","Riyadh (RUH)","Jeddah (JED)","Muscat (MCT)","Kuwait (KWI)","Manama (BAH)"};airports.addAll(Arrays.asList(x));}
 }
