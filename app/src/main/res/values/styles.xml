@@ -1,9 +1,10 @@
 <resources>
-<style name="Theme.Vicationfly" parent="Theme.Material3.DayNight.NoActionBar">
-<item name="android:fontFamily">sans</item>
-<item name="android:windowLightStatusBar">true</item>
-<item name="android:statusBarColor">#FFF7ED</item>
-<item name="android:navigationBarColor">#FFF7ED</item>
-<item name="android:colorAccent">#FF6B00</item>
+<style name="Theme.Vicationfly" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:fontFamily">sans</item>
+    <item name="android:windowLightStatusBar">true</item>
+    <item name="android:statusBarColor">#FFF7ED</item>
+    <item name="android:navigationBarColor">#FFF7ED</item>
+    <item name="android:colorAccent">#FF6B00</item>
+    <item name="android:windowActionModeOverlay">true</item>
 </style>
 </resources>
