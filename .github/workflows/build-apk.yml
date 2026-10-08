@@ -1,6 +1,8 @@
 name: Build Vicationfly APK
 on:
   push:
+    branches: [ main, vicationfly-premium-from-zero ]
+  pull_request:
     branches: [ main ]
   workflow_dispatch:
 jobs:
@@ -20,5 +22,5 @@ jobs:
       - run: gradle :app:assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: Vicationfly-1.0.0-APK
+          name: Vicationfly-Premium-2.0.0-APK
           path: app/build/outputs/apk/debug/app-debug.apk
