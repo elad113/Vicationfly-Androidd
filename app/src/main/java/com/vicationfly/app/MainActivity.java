@@ -1,170 +1,33 @@
-package com.vicationfly.app;
+package com.vicationfly.premium;
+import android.app.*;import android.os.*;import android.content.*;import android.graphics.*;import android.graphics.drawable.*;import android.net.*;import android.view.*;import android.view.animation.*;import android.widget.*;import android.text.*;import java.text.*;import java.util.*;
 
-import android.app.*;
-import android.os.*;
-import android.graphics.*;
-import android.graphics.drawable.*;
-import android.content.*;
-import android.view.*;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.*;
-import android.text.*;
-import java.text.*;
-import java.util.*;
-import java.net.*;
-import java.io.*;
-import org.json.*;
-
-public class MainActivity extends Activity {
-    static final int ORANGE=Color.rgb(255,107,53), INK=Color.rgb(30,34,40), MUTED=Color.rgb(105,108,116), BG=Color.rgb(247,245,240), CARD=Color.WHITE, LINE=Color.rgb(231,228,221), GREEN=Color.rgb(29,155,100);
-    LinearLayout root, body, nav;
-    String screen="home";
-    String from="",to="",depart="",ret="";
-    int adults=1,children=0,infants=0;
-    String cabin="Economy", tripType="Round trip";
-
-    int dp(float n){return (int)(n*getResources().getDisplayMetrics().density+.5f);}
-    TextView tv(String s,float size,int color){ TextView v=new TextView(this); v.setText(s);v.setTextSize(size);v.setTextColor(color);v.setFontFeatureSettings("kern");return v; }
-    TextView label(String s){ TextView v=tv(s.toUpperCase(Locale.US),11,ORANGE);v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return v; }
-    GradientDrawable shape(int color,float r){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(dp(r));return g;}
-    GradientDrawable stroke(int color,int line,float r){GradientDrawable g=shape(color,r);g.setStroke(dp(1),line);return g;}
-    LinearLayout col(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
-    LinearLayout row(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.HORIZONTAL);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
-    LinearLayout.LayoutParams lp(int w,int h){return new LinearLayout.LayoutParams(w,h);}
-    LinearLayout.LayoutParams weight(int h){return new LinearLayout.LayoutParams(0,h,1);}
-    View gap(int h){Space s=new Space(this);s.setLayoutParams(lp(1,dp(h)));return s;}
-
-    @Override public void onCreate(Bundle b){super.onCreate(b); getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);showSplash();}
-
-    void showSplash(){
-        FrameLayout f=new FrameLayout(this); f.setBackgroundColor(BG);
-        LinearLayout c=col();c.setGravity(Gravity.CENTER);c.setPadding(dp(30),0,dp(30),0);
-        TextView book=tv("✈",58,ORANGE);book.setGravity(17);
-        TextView title=tv("Vicationfly",38,INK);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);title.setGravity(17);
-        TextView sub=tv("Find the world. One flight at a time.",15,MUTED);sub.setGravity(17);
-        c.addView(book,lp(-1,dp(75)));c.addView(title,lp(-1,dp(55)));c.addView(sub,lp(-1,dp(35)));f.addView(c);
-        TextView plane=tv("✈",25,ORANGE);FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(dp(45),dp(45));pp.gravity=Gravity.CENTER_VERTICAL;f.addView(plane,pp);
-        f.postDelayed(()->{ObjectAnimatorCompat.slide(plane,f,900);},180);
-        setContentView(f);f.postDelayed(this::home,1400);
-    }
-
-    void base(){
-        root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);
-        body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);
-        ScrollView sv=new ScrollView(this);sv.setFillViewport(true);sv.addView(body);root.addView(sv,weight(0));
-        nav=bottomNav();root.addView(nav,lp(-1,dp(76)));setContentView(root);
-    }
-
-    LinearLayout bottomNav(){
-        LinearLayout n=row();n.setPadding(dp(8),dp(8),dp(8),dp(10));n.setBackgroundColor(Color.WHITE);
-        String[] names={"Home","Search","Trips","Profile"};String[] icons={"⌂","⌕","▣","●"};
-        for(int i=0;i<4;i++){final int ix=i;LinearLayout item=col();item.setGravity(Gravity.CENTER);TextView ic=tv(icons[i],23,screen.equals(screenName(i))?ORANGE:MUTED);TextView tx=tv(names[i],11,screen.equals(screenName(i))?INK:MUTED);item.addView(ic,lp(-1,dp(28)));item.addView(tx,lp(-1,dp(22)));item.setOnClickListener(v->{if(ix==0)home();else if(ix==1)searchScreen();else if(ix==2)trips();else profile();});n.addView(item,weight(dp(58)));}return n;
-    }
-    String screenName(int i){return i==0?"home":i==1?"search":i==2?"trips":"profile";}
-
-    void home(){
-        screen="home";base();
-        body.setPadding(dp(20),dp(22),dp(20),dp(24));
-        TextView brand=tv("Vicationfly",30,INK);brand.setTypeface(Typeface.DEFAULT,Typeface.BOLD);body.addView(brand,lp(-1,dp(42)));
-        TextView sub=tv("Find your next flight.",17,MUTED);body.addView(sub,lp(-1,dp(32)));
-        body.addView(gap(12));
-        LinearLayout hero=col();hero.setPadding(dp(20),dp(18),dp(20),dp(20));hero.setBackground(shape(INK,28));
-        TextView h=tv("Where will you go?",24,Color.WHITE);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);hero.addView(h,lp(-1,dp(36)));
-        TextView hs=tv("Search live offers from connected airline and booking partners.",13,0xffC8CBD0);hero.addView(hs,lp(-1,dp(42)));
-        body.addView(hero,lp(-1,dp(116)));body.addView(gap(14));
-        LinearLayout card=col();card.setPadding(dp(16),dp(16),dp(16),dp(18));card.setBackground(stroke(CARD,LINE,26));
-        LinearLayout toggle=row();TextView rt=toggle("Round trip",true),ow=toggle("One way",false);toggle.addView(rt,weight(dp(48)));toggle.addView(ow,weight(dp(48)));card.addView(toggle);
-        rt.setOnClickListener(v->{tripType="Round trip";rt.setTextColor(INK);ow.setTextColor(MUTED);});
-        ow.setOnClickListener(v->{tripType="One way";ow.setTextColor(INK);rt.setTextColor(MUTED);});
-        card.addView(gap(12));card.addView(airportRow("FROM",from.isEmpty()?"Choose departure":from,true),lp(-1,dp(72)));card.addView(gap(8));card.addView(airportRow("TO",to.isEmpty()?"Choose destination":to,false),lp(-1,dp(72)));
-        card.addView(gap(10));card.addView(dateRow());card.addView(gap(10));card.addView(passengerRow());card.addView(gap(10));card.addView(cabinRow());card.addView(gap(15));
-        Button search=primary("Search flights");search.setOnClickListener(v->validateAndSearch());card.addView(search,lp(-1,dp(56)));
-        body.addView(card);body.addView(gap(16));
-        LinearLayout note=col();note.setPadding(dp(14),dp(12),dp(14),dp(12));note.setBackground(shape(0xfffff3e7,18));note.addView(tv("LIVE DATA ONLY",11,ORANGE));note.addView(tv("Vicationfly never invents flight availability or prices. Live flight results require a configured backend provider.",12,MUTED));body.addView(note);
-    }
-
-    TextView toggle(String s,boolean active){TextView t=tv(s,15,active?INK:MUTED);t.setGravity(17);t.setTypeface(Typeface.DEFAULT,active?Typeface.BOLD:Typeface.NORMAL);return t;}
-    LinearLayout airportRow(String l,String value,boolean isFrom){LinearLayout r=col();r.setPadding(dp(14),dp(8),dp(14),dp(7));r.setBackground(shape(0xfff5f3ef,18));r.addView(label(l));TextView v=tv(value,15,value.startsWith("Choose")?MUTED:INK);v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);r.addView(v,lp(-1,dp(35)));r.setOnClickListener(x->airportSearch(isFrom));return r;}
-    LinearLayout dateRow(){LinearLayout r=row();r.setBackground(shape(0xfff5f3ef,18));r.setPadding(dp(14),0,dp(8),0);LinearLayout d=col();d.addView(label("DATES"));TextView val=tv(depart.isEmpty()?"Departure  •  Return":depart+"  →  "+ret,15,depart.isEmpty()?MUTED:INK);val.setTypeface(Typeface.DEFAULT,Typeface.BOLD);d.addView(val,lp(-1,dp(38)));r.addView(d,weight(dp(66)));Button b=small("Choose");b.setOnClickListener(v->calendar());r.addView(b,lp(dp(88),dp(45)));return r;}
-    LinearLayout passengerRow(){LinearLayout r=col();r.setPadding(dp(14),dp(8),dp(14),dp(8));r.setBackground(shape(0xfff5f3ef,18));r.addView(label("TRAVELERS"));TextView v=tv(adults+" adult"+(adults==1?"":"s")+"  •  "+children+" child  •  "+infants+" infant",15,INK);v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);r.addView(v,lp(-1,dp(35)));r.setOnClickListener(x->passengers());return r;}
-    LinearLayout cabinRow(){LinearLayout r=col();r.setPadding(dp(14),dp(8),dp(14),dp(8));r.setBackground(shape(0xfff5f3ef,18));r.addView(label("CABIN"));TextView v=tv(cabin,15,INK);v.setTypeface(Typeface.DEFAULT,Typeface.BOLD);r.addView(v,lp(-1,dp(35)));r.setOnClickListener(x->cabinDialog());return r;}
-
-    Button primary(String s){Button b=new Button(this);b.setText(s);b.setTextSize(16);b.setTextColor(Color.WHITE);b.setAllCaps(false);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setBackground(shape(ORANGE,18));return b;}
-    Button small(String s){Button b=new Button(this);b.setText(s);b.setTextSize(13);b.setTextColor(INK);b.setAllCaps(false);b.setBackground(stroke(Color.WHITE,LINE,14));return b;}
-
-    void airportSearch(boolean isFrom){
-        final Dialog d=new Dialog(this);LinearLayout box=col();box.setPadding(dp(18),dp(18),dp(18),dp(18));box.setBackground(shape(BG,28));
-        LinearLayout head=row();TextView x=tv("‹",34,INK);TextView title=tv(isFrom?"Choose departure":"Choose destination",22,INK);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);head.addView(x,lp(dp(45),dp(48)));head.addView(title,weight(dp(48)));box.addView(head);
-        EditText q=new EditText(this);q.setSingleLine();q.setHint("Search city, airport, IATA code or country");q.setTextSize(15);q.setPadding(dp(16),0,dp(16),0);q.setBackground(shape(Color.WHITE,17));box.addView(q,lp(-1,dp(54)));box.addView(gap(8));
-        LinearLayout list=col();ScrollView sv=new ScrollView(this);sv.addView(list);box.addView(sv,weight(dp(320)));x.setOnClickListener(v->d.dismiss());
-        Runnable render=()->{list.removeAllViews();String query=q.getText().toString().trim();ArrayList<String[]> hits=AirportIndex.search(query);if(hits.size()==0){TextView no=tv(query.isEmpty()?"Start typing to search airports":"No airport matches. Connect a live airport index to search globally.",14,MUTED);no.setPadding(dp(8),dp(20),dp(8),dp(20));list.addView(no);return;}for(String[]a:hits){LinearLayout item=row();item.setPadding(dp(10),dp(8),dp(10),dp(8));item.setBackground(stroke(Color.WHITE,LINE,17));LinearLayout info=col();info.addView(tv(a[0],15,INK));info.addView(tv(a[1]+"  •  "+a[2]+"  •  "+a[3],12,MUTED));item.addView(info,weight(dp(68)));item.setOnClickListener(v->{if(isFrom)from=a[2]+" · "+a[1];else to=a[2]+" · "+a[1];d.dismiss();home();});list.addView(item,lp(-1,dp(70)));list.addView(gap(6));}};
-        q.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int c,int a){}public void onTextChanged(CharSequence s,int st,int b,int c){render.run();}public void afterTextChanged(Editable e){}});render.run();
-        d.setContentView(box);Window w=d.getWindow();w.setBackgroundDrawableResource(android.R.color.transparent);w.setLayout((int)(getResources().getDisplayMetrics().widthPixels*.94f),dp(570));d.show();w.setLayout((int)(getResources().getDisplayMetrics().widthPixels*.94f),dp(570));q.requestFocus();w.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
-    }
-
-    void calendar(){
-        final Dialog d=new Dialog(this);LinearLayout box=col();box.setPadding(dp(18),dp(18),dp(18),dp(18));box.setBackground(shape(BG,28));
-        TextView h=tv("Select dates",25,INK);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);box.addView(h,lp(-1,dp(40)));
-        TextView hint=tv("Choose departure, then return. Both are required.",13,MUTED);box.addView(hint,lp(-1,dp(36)));
-        CalendarView cv=new CalendarView(this);cv.setMinDate(System.currentTimeMillis()-1000);box.addView(cv,lp(-1,dp(310)));
-        TextView selected=tv("Departure: —     Return: —",14,INK);selected.setPadding(dp(4),dp(10),0,0);box.addView(selected,lp(-1,dp(45)));
-        LinearLayout actions=row();Button cancel=small("Cancel"),apply=primary("Apply");apply.setEnabled(false);apply.setAlpha(.45f);actions.addView(cancel,weight(dp(52)));actions.addView(gap(8));actions.addView(apply,weight(dp(52)));box.addView(actions);
-        final long[] first={0},second={0};final SimpleDateFormat fmt=new SimpleDateFormat("dd MMM yyyy",Locale.US);
-        cv.setOnDateChangeListener((v,y,m,day)->{Calendar c=Calendar.getInstance();c.set(y,m,day,0,0,0);long t=c.getTimeInMillis();if(first[0]==0||second[0]!=0){first[0]=t;second[0]=0;}else if(t<first[0]){second[0]=first[0];first[0]=t;}else second[0]=t;selected.setText("Departure: "+fmt.format(new Date(first[0]))+"     Return: "+(second[0]==0?"—":fmt.format(new Date(second[0]))));apply.setEnabled(second[0]!=0);apply.setAlpha(second[0]!=0?1f:.45f);});
-        cancel.setOnClickListener(v->d.dismiss());apply.setOnClickListener(v->{depart=fmt.format(new Date(first[0]));ret=fmt.format(new Date(second[0]));d.dismiss();home();});d.setContentView(box);Window w=d.getWindow();w.setBackgroundDrawableResource(android.R.color.transparent);d.show();w.setLayout((int)(getResources().getDisplayMetrics().widthPixels*.94f),dp(500));
-    }
-
-    void passengers(){ final Dialog d=new Dialog(this);LinearLayout box=col();box.setPadding(dp(20),dp(20),dp(20),dp(20));box.setBackground(shape(BG,26));TextView h=tv("Travelers",24,INK);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);box.addView(h);box.addView(gap(12));String[] names={"Adults","Children","Infants"};int[] vals={adults,children,infants};for(int i=0;i<3;i++){LinearLayout r=row();TextView n=tv(names[i],16,INK);r.addView(n,weight(dp(52)));TextView count=tv(""+vals[i],16,INK);Button minus=small("−"),plus=small("+");final int ix=i;minus.setOnClickListener(v->{int z=ix==0?adults:ix==1?children:infants;if(z>(ix==0?1:0)){if(ix==0)adults--;else if(ix==1)children--;else infants--;d.dismiss();passengers();}});plus.setOnClickListener(v->{if(ix==0)adults++;else if(ix==1)children++;else infants++;d.dismiss();passengers();});r.addView(minus,lp(dp(46),dp(45)));r.addView(count,lp(dp(40),dp(45)));r.addView(plus,lp(dp(46),dp(45)));box.addView(r);box.addView(gap(6));}Button done=primary("Done");done.setOnClickListener(v->{d.dismiss();home();});box.addView(done,lp(-1,dp(52)));d.setContentView(box);Window w=d.getWindow();w.setBackgroundDrawableResource(android.R.color.transparent);d.show();w.setLayout((int)(getResources().getDisplayMetrics().widthPixels*.9f),WindowManager.LayoutParams.WRAP_CONTENT);}
-    void cabinDialog(){String[] a={"Economy","Premium Economy","Business","First"};new AlertDialog.Builder(this).setTitle("Cabin class").setSingleChoiceItems(a,Arrays.asList(a).indexOf(cabin),(d,w)->{cabin=a[w];d.dismiss();home();}).show();}
-
-    void validateAndSearch(){if(from.isEmpty()||to.isEmpty()){toast("Choose departure and destination.");return;}if(depart.isEmpty()&&tripType.equals("Round trip")){toast("Choose your departure and return dates.");return;}searchScreen();}
-
-    void searchScreen(){screen="search";base();body.setPadding(dp(20),dp(20),dp(20),dp(24));TextView h=tv("Search",30,INK);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);body.addView(h,lp(-1,dp(42)));TextView route=tv((from.isEmpty()?"Departure":from)+"  →  "+(to.isEmpty()?"Destination":to),15,MUTED);body.addView(route,lp(-1,dp(30)));
-        LinearLayout loading=col();loading.setGravity(Gravity.CENTER);loading.setPadding(dp(24),dp(28),dp(24),dp(28));loading.setBackground(shape(Color.WHITE,24));ProgressBar p=new ProgressBar(this);loading.addView(p,lp(dp(44),dp(44)));TextView a=tv("Checking live flight providers…",17,INK);a.setGravity(17);loading.addView(a,lp(-1,dp(42)));TextView b=tv("Vicationfly will never show invented flights or prices.",13,MUTED);b.setGravity(17);loading.addView(b,lp(-1,dp(36)));body.addView(loading);new Handler().postDelayed(()->liveResults(),850);
-    }
-
-    void liveResults(){body.removeAllViews();TextView h=tv("Flight results",29,INK);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);body.addView(h,lp(-1,dp(42)));body.addView(tv((from.isEmpty()?"Departure":from)+"  →  "+(to.isEmpty()?"Destination":to),14,MUTED),lp(-1,dp(28)));
-        LinearLayout filter=row();Button f=small("Filters");Button sort=small("Sort: Best");filter.addView(f,weight(dp(50)));filter.addView(gap(8));filter.addView(sort,weight(dp(50)));body.addView(filter);body.addView(gap(12));
-        LinearLayout empty=col();empty.setGravity(Gravity.CENTER);empty.setPadding(dp(25),dp(35),dp(25),dp(35));empty.setBackground(shape(Color.WHITE,24));TextView icon=tv("✈",44,ORANGE);icon.setGravity(17);empty.addView(icon,lp(-1,dp(60)));TextView title=tv("Live flight search isn't connected yet",19,INK);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);title.setGravity(17);empty.addView(title,lp(-1,dp(52)));TextView msg=tv("No fake results are shown. Add a Flight API backend to return real-time availability, prices, round trips and booking offers.",14,MUTED);msg.setGravity(17);empty.addView(msg,lp(-1,dp(80)));Button config=small("Backend configuration");config.setOnClickListener(v->backendInfo());empty.addView(config,lp(-1,dp(50)));body.addView(empty);body.addView(gap(14));TextView note=tv("Vicationfly is an intermediary. Availability and prices are supplied by airlines and booking partners and can change until booking is confirmed.",11,MUTED);note.setGravity(17);body.addView(note,lp(-1,dp(55)));
-    }
-    void backendInfo(){new AlertDialog.Builder(this).setTitle("Live provider setup").setMessage("The APK contains no airline credentials and no fake flight feed. Configure the server-side FLIGHT_API_KEY / FLIGHT_API_SECRET and connect Amadeus, Duffel, Travelport, Sabre or another authorized provider. The Android app must call that backend over HTTPS.").setPositiveButton("OK",null).show();}
-
-    void trips(){screen="trips";base();body.setPadding(dp(20),dp(22),dp(20),dp(24));TextView h=tv("My Trips",30,INK);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);body.addView(h,lp(-1,dp(45)));LinearLayout card=col();card.setGravity(Gravity.CENTER);card.setPadding(dp(22),dp(40),dp(22),dp(40));card.setBackground(shape(Color.WHITE,24));TextView i=tv("▣",42,ORANGE);i.setGravity(17);card.addView(i,lp(-1,dp(58)));TextView a=tv("No bookings yet",20,INK);a.setTypeface(Typeface.DEFAULT,Typeface.BOLD);a.setGravity(17);card.addView(a,lp(-1,dp(42)));TextView b=tv("Your confirmed trips will appear here after a real provider booking is completed.",13,MUTED);b.setGravity(17);card.addView(b,lp(-1,dp(58)));body.addView(card);}
-    void profile(){screen="profile";base();body.setPadding(dp(20),dp(22),dp(20),dp(24));TextView h=tv("Profile",30,INK);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);body.addView(h,lp(-1,dp(45)));setting("Language","English / עברית");setting("Currency","ILS · USD · EUR · GBP");setting("Notifications","Manage travel alerts");setting("Privacy","Secure payments and data controls");setting("About","Vicationfly flight search & booking intermediary");}
-    void setting(String a,String b){LinearLayout c=col();c.setPadding(dp(16),dp(14),dp(16),dp(14));c.setBackground(shape(Color.WHITE,20));c.addView(tv(a,16,INK));c.addView(tv(b,12,MUTED));body.addView(c,lp(-1,dp(72)));body.addView(gap(8));}
-
-    void toast(String s){Toast.makeText(this,s,Toast.LENGTH_SHORT).show();}
-}
-
-class ObjectAnimatorCompat {
-    static void slide(final View v, final View parent, long duration){
-        final int w=parent.getWidth()>0?parent.getWidth():1080;
-        v.setTranslationX(-w/2f);v.animate().translationX(w/2f).setDuration(duration).withEndAction(()->{v.setTranslationX(-w/2f);slide(v,parent,duration);}).start();
-    }
-}
-class AirportIndex {
-    static final String[][] DATA={
-        {"Tel Aviv","Ben Gurion Airport","TLV","Israel"},{"London","Heathrow Airport","LHR","United Kingdom"},{"London","Gatwick Airport","LGW","United Kingdom"},
-        {"Paris","Charles de Gaulle Airport","CDG","France"},{"Paris","Orly Airport","ORY","France"},{"Amsterdam","Schiphol Airport","AMS","Netherlands"},
-        {"Rome","Fiumicino Airport","FCO","Italy"},{"Madrid","Adolfo Suarez Madrid-Barajas","MAD","Spain"},{"Barcelona","El Prat Airport","BCN","Spain"},
-        {"Athens","Athens International Airport","ATH","Greece"},{"Berlin","Brandenburg Airport","BER","Germany"},{"Frankfurt","Frankfurt Airport","FRA","Germany"},
-        {"Dubai","Dubai International Airport","DXB","United Arab Emirates"},{"Doha","Hamad International Airport","DOH","Qatar"},{"Abu Dhabi","Zayed International Airport","AUH","United Arab Emirates"},
-        {"New York","John F. Kennedy International","JFK","United States"},{"New York","LaGuardia Airport","LGA","United States"},{"Los Angeles","Los Angeles International","LAX","United States"},
-        {"San Francisco","San Francisco International","SFO","United States"},{"Miami","Miami International Airport","MIA","United States"},{"Chicago","O'Hare International Airport","ORD","United States"},
-        {"Toronto","Toronto Pearson International","YYZ","Canada"},{"Vancouver","Vancouver International","YVR","Canada"},{"Mexico City","Mexico City International","MEX","Mexico"},
-        {"Tokyo","Haneda Airport","HND","Japan"},{"Tokyo","Narita International","NRT","Japan"},{"Seoul","Incheon International","ICN","South Korea"},
-        {"Singapore","Changi Airport","SIN","Singapore"},{"Bangkok","Suvarnabhumi Airport","BKK","Thailand"},{"Hong Kong","Hong Kong International","HKG","Hong Kong"},
-        {"Sydney","Sydney Kingsford Smith","SYD","Australia"},{"Melbourne","Melbourne Airport","MEL","Australia"},{"Auckland","Auckland Airport","AKL","New Zealand"},
-        {"Mumbai","Chhatrapati Shivaji Maharaj International","BOM","India"},{"Delhi","Indira Gandhi International","DEL","India"},{"Cairo","Cairo International","CAI","Egypt"},
-        {"Istanbul","Istanbul Airport","IST","Türkiye"},{"Lisbon","Humberto Delgado Airport","LIS","Portugal"},{"Zurich","Zurich Airport","ZRH","Switzerland"},
-        {"Vienna","Vienna International","VIE","Austria"},{"Prague","Vaclav Havel Airport Prague","PRG","Czechia"},{"Copenhagen","Copenhagen Airport","CPH","Denmark"},
-        {"Stockholm","Arlanda Airport","ARN","Sweden"},{"Oslo","Oslo Airport","OSL","Norway"},{"Helsinki","Helsinki Airport","HEL","Finland"},
-        {"Warsaw","Warsaw Chopin Airport","WAW","Poland"},{"Budapest","Budapest Ferenc Liszt International","BUD","Hungary"},{"Bucharest","Henri Coanda International","OTP","Romania"},
-        {"Johannesburg","O. R. Tambo International","JNB","South Africa"},{"Cape Town","Cape Town International","CPT","South Africa"},{"Nairobi","Jomo Kenyatta International","NBO","Kenya"},
-        {"Riyadh","King Khalid International","RUH","Saudi Arabia"},{"Jeddah","King Abdulaziz International","JED","Saudi Arabia"},{"Muscat","Muscat International","MCT","Oman"},
-        {"Kuala Lumpur","Kuala Lumpur International","KUL","Malaysia"},{"Jakarta","Soekarno-Hatta International","CGK","Indonesia"},{"Manila","Ninoy Aquino International","MNL","Philippines"},
-        {"Sao Paulo","Guarulhos International","GRU","Brazil"},{"Buenos Aires","Ezeiza International","EZE","Argentina"},{"Santiago","Arturo Merino Benitez","SCL","Chile"},
-        {"Lima","Jorge Chavez International","LIM","Peru"},{"Reykjavik","Keflavik International","KEF","Iceland"},{"Dublin","Dublin Airport","DUB","Ireland"}
-    };
-    static ArrayList<String[]> search(String q){ArrayList<String[]> out=new ArrayList<>();String z=q.toLowerCase(Locale.US);for(String[]a:DATA){String all=(a[0]+" "+a[1]+" "+a[2]+" "+a[3]).toLowerCase(Locale.US);if(z.isEmpty()||all.contains(z))out.add(a);if(out.size()==5)break;}return out;}
+public class MainActivity extends Activity{
+ final int O=Color.rgb(255,122,33),INK=Color.rgb(30,31,35),M=Color.rgb(112,116,124),BG=Color.rgb(255,250,246),LINE=Color.rgb(235,228,220); LinearLayout body;SharedPreferences db;Vication active;Uri image;String dep="",ret="",trip="Round Trip",cabin="Economy";int adults=1,children=0;ArrayList<A> airports=new ArrayList<>();
+ int d(float x){return(int)(x*getResources().getDisplayMetrics().density+.5f);} TextView t(String s,float z,int c,boolean b){TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(c);v.setTypeface(Typeface.DEFAULT,b?1:0);return v;}
+ GradientDrawable g(int c,float r){GradientDrawable x=new GradientDrawable();x.setColor(c);x.setCornerRadius(d(r));return x;} GradientDrawable s(int c,int l,float r){GradientDrawable x=g(c,r);x.setStroke(d(1),l);return x;}
+ LinearLayout.LayoutParams lp(int w,int h){return new LinearLayout.LayoutParams(w,h);} LinearLayout.LayoutParams wt(int h){return new LinearLayout.LayoutParams(0,h,1);}
+ Button B(String q){Button b=new Button(this);b.setText(q);b.setTextSize(16);b.setTextColor(Color.WHITE);b.setAllCaps(false);b.setTypeface(Typeface.DEFAULT,1);b.setMinHeight(d(56));b.setBackground(g(O,18));return b;}
+ TextView field(String a,String b){TextView v=t(a+"\n"+b,14,INK,true);v.setPadding(d(16),d(8),d(12),0);v.setGravity(Gravity.CENTER_VERTICAL);v.setBackground(s(Color.WHITE,LINE,16));return v;}
+ @Override public void onCreate(Bundle x){super.onCreate(x);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(Color.WHITE);getWindow().getDecorView().setSystemUiVisibility(8192);db=getSharedPreferences("vicationfly",0);seed();splash();}
+ void splash(){FrameLayout f=new FrameLayout(this);f.setBackgroundColor(BG);LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setGravity(17);TextView logo=t("Vicationfly",38,INK,true);logo.setGravity(17);c.addView(logo,lp(-1,d(60)));TextView sub=t("Your journeys, beautifully planned.",15,M,false);sub.setGravity(17);c.addView(sub,lp(-1,d(34)));f.addView(c,new FrameLayout.LayoutParams(-1,-1));TextView p=t("✈",44,O,true);p.setGravity(17);FrameLayout.LayoutParams pp=new FrameLayout.LayoutParams(d(70),d(60));pp.gravity=Gravity.CENTER_VERTICAL;f.addView(p,pp);p.post(()->{ObjectAnimator a=ObjectAnimator.ofFloat(p,"translationX",-d(80),f.getWidth()+d(80));a.setDuration(1500);a.setInterpolator(new LinearInterpolator());a.setRepeatCount(-1);a.start();});setContentView(f);new Handler().postDelayed(this::home,2400);}
+ void base(){LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);ScrollView sv=new ScrollView(this);body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(d(20),d(14),d(20),d(28));sv.addView(body);root.addView(sv,wt(0));setContentView(root);}
+ void top(String h,String sub,boolean back){LinearLayout r=new LinearLayout(this);r.setGravity(16);if(back){TextView x=t("‹",38,INK,false);x.setGravity(17);r.addView(x,lp(d(44),d(52)));x.setOnClickListener(v->home());}LinearLayout q=new LinearLayout(this);q.setOrientation(LinearLayout.VERTICAL);q.addView(t(h,26,INK,true));if(sub!=null)q.addView(t(sub,13,M,false));r.addView(q,wt(d(52)));body.addView(r);}
+ void home(){base();top("Your Vications","Collect your journeys in one place.",false);Button add=B("+  Create Vication");body.addView(add,lp(-1,d(62)));add.setOnClickListener(v->create());body.addView(space(14));String raw=db.getString("list","");if(raw.isEmpty()){LinearLayout e=new LinearLayout(this);e.setOrientation(LinearLayout.VERTICAL);e.setGravity(17);e.setPadding(d(20),d(55),d(20),d(20));e.addView(t("✈",50,O,true),lp(-1,d(65)));TextView h=t("No Vications yet",22,INK,true);h.setGravity(17);e.addView(h,lp(-1,d(40)));TextView q=t("Create your first Vication and start planning your trip.",14,M,false);q.setGravity(17);q.setPadding(0,d(5),0,0);e.addView(q,lp(-1,d(55)));body.addView(e);}else for(Vication v:load())card(v);}
+ View space(int h){Space x=new Space(this);x.setLayoutParams(lp(1,d(h)));return x;}
+ void card(Vication v){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(d(12),d(12),d(12),d(14));c.setBackground(s(Color.WHITE,LINE,24));if(!v.image.isEmpty()){ImageView im=new ImageView(this);im.setScaleType(ImageView.ScaleType.CENTER_CROP);im.setImageURI(Uri.parse(v.image));c.addView(im,lp(-1,d(160)));}else{View z=new View(this);z.setBackground(g(Color.WHITE,18));c.addView(z,lp(-1,d(160)));}TextView n=t(v.name,20,INK,true);n.setPadding(d(5),d(12),d(5),0);c.addView(n);TextView q=t("Find flights  •  "+v.date,12,M,false);q.setPadding(d(5),d(3),0,0);c.addView(q);LinearLayout.LayoutParams p=lp(-1,d(238));p.setMargins(0,0,0,d(15));body.addView(c,p);c.setOnClickListener(x->{active=v;find();});c.setAlpha(0);c.animate().alpha(1).setDuration(300).start();}
+ void create(){base();top("Create your Vication","Name your journey and optionally add a cover.",true);body.addView(t("Vication name",13,M,true));EditText n=new EditText(this);n.setTextSize(17);n.setHint("Summer in London");n.setSingleLine();n.setPadding(d(16),0,d(16),0);n.setBackground(s(Color.WHITE,LINE,16));body.addView(n,lp(-1,d(58)));body.addView(space(18));LinearLayout pick=new LinearLayout(this);pick.setGravity(16);pick.setPadding(d(16),d(8),d(12),d(8));pick.setBackground(s(Color.WHITE,LINE,18));TextView p=t("Add a picture\nChoose from your photos",15,INK,true);pick.addView(p,wt(d(58)));pick.addView(t("＋",30,O,true),lp(d(45),d(58)));body.addView(pick);ImageView prev=new ImageView(this);prev.setScaleType(ImageView.ScaleType.CENTER_CROP);prev.setVisibility(View.GONE);body.addView(prev,lp(-1,d(190)));pick.setOnClickListener(v->pickImage(prev));body.addView(space(10));Button save=B("Save");body.addView(save,lp(-1,d(60)));save.setOnClickListener(v->{String q=n.getText().toString().trim();if(q.isEmpty()){n.setError("Enter a Vication name");return;}String row=UUID.randomUUID()+"|"+q.replace("|"," ")+"|"+(image==null?"":image)+"|"+new SimpleDateFormat("dd MMM yyyy",Locale.US).format(new Date())+"\n";db.edit().putString("list",row+db.getString("list","")).apply();image=null;home();});}
+ void pickImage(ImageView prev){Intent i;if(Build.VERSION.SDK_INT>=33)i=new Intent("android.provider.action.PICK_IMAGES");else{i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("image/*");i.addCategory(Intent.CATEGORY_OPENABLE);}startActivityForResult(i,9);this.image=null;this.pendingPreview=prev;}
+ ImageView pendingPreview;@Override protected void onActivityResult(int r,int c,Intent x){super.onActivityResult(r,c,x);if(r==9&&c==RESULT_OK&&x!=null&&x.getData()!=null){image=x.getData();if(pendingPreview!=null){pendingPreview.setImageURI(image);pendingPreview.setVisibility(View.VISIBLE);}}}
+ ArrayList<Vication> load(){ArrayList<Vication> a=new ArrayList<>();for(String r:db.getString("list","").split("\\n")){String[] x=r.split("\\|",-1);if(x.length>=4)a.add(new Vication(x[0],x[1],x[2],x[3]));}return a;}
+ void find(){base();top("Find Flights",active.name+"  •  Find your perfect itinerary.",true);body.addView(t("Route",18,INK,true));AutoCompleteTextView from=airport("From","City, airport or IATA");AutoCompleteTextView to=airport("To","City, airport or IATA");TextView dep=field("Departure","Select date"),rr=field("Return","Select date");LinearLayout dr=new LinearLayout(this);dr.addView(dep,wt(d(74)));LinearLayout.LayoutParams rp=wt(d(74));rp.setMargins(d(10),0,0,0);dr.addView(rr,rp);body.addView(dr);dep.setOnClickListener(v->dates(dep,rr));rr.setOnClickListener(v->dates(dep,rr));LinearLayout pr=new LinearLayout(this);TextView pax=field("Passengers",adults+" adult · "+children+" child");TextView cab=field("Cabin",cabin);pr.addView(pax,wt(d(74)));LinearLayout.LayoutParams cp=wt(d(74));cp.setMargins(d(10),0,0,0);pr.addView(cab,cp);body.addView(pr);pax.setOnClickListener(v->passengers(pax));cab.setOnClickListener(v->cabin(cab));body.addView(t("Trip type",13,M,true),lp(-1,d(36)));LinearLayout tr=new LinearLayout(this);TextView rt=t("Round Trip",15,Color.WHITE,true),ow=t("One Way",15,INK,true);rt.setGravity(17);ow.setGravity(17);rt.setBackground(g(O,16));ow.setBackground(s(Color.WHITE,LINE,16));tr.addView(rt,wt(d(52)));LinearLayout.LayoutParams op=wt(d(52));op.setMargins(d(10),0,0,0);tr.addView(ow,op);body.addView(tr);ow.setOnClickListener(v->{trip="One Way";ow.setTextColor(Color.WHITE);ow.setBackground(g(O,16));rt.setTextColor(INK);rt.setBackground(s(Color.WHITE,LINE,16));rr.setVisibility(View.INVISIBLE);});rt.setOnClickListener(v->{trip="Round Trip";rt.setTextColor(Color.WHITE);rt.setBackground(g(O,16));ow.setTextColor(INK);ow.setBackground(s(Color.WHITE,LINE,16));rr.setVisibility(View.VISIBLE);});body.addView(space(16));Button go=B("Find Flights  →");body.addView(go,lp(-1,d(62)));go.setOnClickListener(v->{if(from.getText().length()==0||to.getText().length()==0||dep.getText().toString().contains("Select")||(trip.equals("Round Trip")&&rr.getText().toString().contains("Select"))){toast("Complete all required fields first.");return;}results(from.getText().toString(),to.getText().toString());});}
+ AutoCompleteTextView airport(String label,String hint){AutoCompleteTextView e=new AutoCompleteTextView(this);e.setTextSize(16);e.setHint(hint);e.setSingleLine();e.setPadding(d(16),0,d(16),0);e.setBackground(s(Color.WHITE,LINE,16));e.setThreshold(1);ArrayAdapter<String>a=new ArrayAdapter<>(this,android.R.layout.simple_dropdown_item_1line,new ArrayList<String>());e.setAdapter(a);e.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence x,int y,int z,int w){}public void onTextChanged(CharSequence x,int y,int z,int w){a.clear();String q=x.toString().toLowerCase();int n=0;for(A z0:airports)if(z0.hit(q)&&n++<5)a.add(z0.city+"  •  "+z0.name+"  •  "+z0.iata+"  •  "+z0.country);a.notifyDataSetChanged();if(a.getCount()>0)e.showDropDown();}public void afterTextChanged(Editable x){}});e.setOnItemClickListener((p,v,pos,id)->e.setText(((String)p.getItemAtPosition(pos)).split("  •  ")[2]));body.addView(e,lp(-1,d(60)));body.addView(space(8));return e;}
+ void dates(TextView dep,TextView rr){DatePickerDialog x=new DatePickerDialog(this,(v,y,m,day)->{dep.setText("Departure\n"+fmt(y,m,day));if(trip.equals("Round Trip"))new DatePickerDialog(this,(v2,y2,m2,d2)->rr.setText("Return\n"+fmt(y2,m2,d2)),y,m,Math.min(day+7,28)).show();},Calendar.getInstance().get(Calendar.YEAR),Calendar.getInstance().get(Calendar.MONTH),Calendar.getInstance().get(Calendar.DAY_OF_MONTH));x.setTitle("Departure");x.show();}
+ String fmt(int y,int m,int day){return String.format(Locale.US,"%02d %s %04d",day,new SimpleDateFormat("MMM",Locale.US).format(new Date(y-1900,m,1)),y);}
+ void passengers(TextView target){LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(d(18),0,d(18),0);int[] vals={adults,children};String[] names={"Adults","Children"};TextView[] out=new TextView[2];for(int i=0;i<2;i++){LinearLayout r=new LinearLayout(this);r.setGravity(16);r.addView(t(names[i],17,INK,true),wt(d(58)));Button mi=new Button(this);mi.setText("−");Button pl=new Button(this);pl.setText("+");out[i]=t(""+vals[i],17,INK,true);out[i].setGravity(17);r.addView(mi,lp(d(46),d(46)));r.addView(out[i],lp(d(46),d(46)));r.addView(pl,lp(d(46),d(46)));final int k=i;mi.setOnClickListener(v->{if(k==0)adults=Math.max(1,adults-1);else children=Math.max(0,children-1);out[k].setText(""+(k==0?adults:children));});pl.setOnClickListener(v->{if(k==0)adults++;else children++;out[k].setText(""+(k==0?adults:children));});box.addView(r);}new AlertDialog.Builder(this).setTitle("Passengers").setView(box).setPositiveButton("Apply",(d,w)->target.setText("Passengers\n"+adults+" adult · "+children+" child")).show();}
+ void cabin(TextView x){String[] a={"Economy","Premium Economy","Business","First"};new AlertDialog.Builder(this).setTitle("Cabin").setSingleChoiceItems(a,Arrays.asList(a).indexOf(cabin),(d,w)->{cabin=a[w];x.setText("Cabin\n"+cabin);d.dismiss();}).show();}
+ void results(String f,String to){base();top("Flight Results","Scrollable live offers for "+active.name,false);LinearLayout sum=new LinearLayout(this);sum.setPadding(d(14),d(12),d(14),d(12));sum.setBackground(s(Color.WHITE,LINE,18));sum.addView(t(f+"  →  "+to,16,INK,true),wt(-2));sum.addView(t(trip+"\n"+adults+" adult · "+children+" child\n"+cabin,12,M,false));body.addView(sum);body.addView(space(16));LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);box.setGravity(17);box.setPadding(d(20),d(26),d(20),d(26));box.setBackground(s(Color.WHITE,LINE,24));TextView i=t("✦",42,O,true);i.setGravity(17);box.addView(i,lp(-1,d(55)));TextView h=t("Live flights only",21,INK,true);h.setGravity(17);box.addView(h,lp(-1,d(42)));TextView q=t("This app never creates fake flight cards or random prices. To show real-time worldwide bookable offers, the APK needs a licensed flight-provider backend with credentials.",14,M,false);q.setGravity(17);q.setPadding(0,d(5),0,d(18));box.addView(q,lp(-1,d(115)));TextView providers=t("Ready for Amadeus  •  Duffel  •  Travelport  •  Sabre  •  NDC",12,O,true);providers.setGravity(17);box.addView(providers,lp(-1,d(34)));body.addView(box);body.addView(space(14));TextView n=t("When connected, each Round Trip card will contain OUTBOUND + RETURN in the same card, total price, currency, baggage, stops and View Flight, with no 5-result limit.",12,M,false);n.setGravity(17);body.addView(n);}
+ void toast(String x){Toast.makeText(this,x,Toast.LENGTH_SHORT).show();}
+ void seed(){String[][]a={{"Tel Aviv","Ben Gurion Airport","TLV","Israel"},{"London","Heathrow Airport","LHR","United Kingdom"},{"London","Gatwick Airport","LGW","United Kingdom"},{"Paris","Charles de Gaulle Airport","CDG","France"},{"Paris","Orly Airport","ORY","France"},{"New York","John F Kennedy International","JFK","United States"},{"Los Angeles","Los Angeles International","LAX","United States"},{"Dubai","Dubai International","DXB","UAE"},{"Doha","Hamad International","DOH","Qatar"},{"Rome","Fiumicino Airport","FCO","Italy"},{"Athens","Athens International","ATH","Greece"},{"Barcelona","Barcelona El Prat","BCN","Spain"},{"Madrid","Madrid Barajas","MAD","Spain"},{"Amsterdam","Schiphol","AMS","Netherlands"},{"Frankfurt","Frankfurt Airport","FRA","Germany"},{"Berlin","Brandenburg","BER","Germany"},{"Vienna","Vienna International","VIE","Austria"},{"Zurich","Zurich Airport","ZRH","Switzerland"},{"Istanbul","Istanbul Airport","IST","Türkiye"},{"Tokyo","Haneda Airport","HND","Japan"},{"Tokyo","Narita International","NRT","Japan"},{"Singapore","Changi Airport","SIN","Singapore"},{"Bangkok","Suvarnabhumi","BKK","Thailand"},{"Hong Kong","Hong Kong International","HKG","Hong Kong"},{"Sydney","Kingsford Smith","SYD","Australia"},{"Melbourne","Melbourne Airport","MEL","Australia"},{"Toronto","Pearson International","YYZ","Canada"},{"Vancouver","Vancouver International","YVR","Canada"},{"San Francisco","SFO International","SFO","United States"},{"Chicago","O'Hare International","ORD","United States"},{"Miami","Miami International","MIA","United States"},{"Boston","Logan International","BOS","United States"},{"Lisbon","Humberto Delgado","LIS","Portugal"},{"Dublin","Dublin Airport","DUB","Ireland"},{"Copenhagen","Copenhagen Airport","CPH","Denmark"},{"Stockholm","Arlanda","ARN","Sweden"},{"Oslo","Gardermoen","OSL","Norway"},{"Cairo","Cairo International","CAI","Egypt"},{"Johannesburg","O R Tambo","JNB","South Africa"},{"Cape Town","Cape Town International","CPT","South Africa"},{"Mumbai","Chhatrapati Shivaji","BOM","India"},{"Delhi","Indira Gandhi International","DEL","India"},{"Seoul","Incheon International","ICN","South Korea"},{"Beijing","Capital International","PEK","China"},{"Shanghai","Pudong International","PVG","China"},{"Mexico City","Benito Juarez","MEX","Mexico"},{"Sao Paulo","Guarulhos International","GRU","Brazil"},{"Buenos Aires","Ezeiza International","EZE","Argentina"}};for(String[]x:a)airports.add(new A(x[0],x[1],x[2],x[3]));}
+ static class A{String city,name,iata,country;A(String a,String b,String c,String d){city=a;name=b;iata=c;country=d;}boolean hit(String q){return city.toLowerCase().contains(q)||name.toLowerCase().contains(q)||iata.toLowerCase().contains(q)||country.toLowerCase().contains(q);}}
+ static class Vication{String id,name,image,date;Vication(String a,String b,String c,String d){id=a;name=b;image=c;date=d;}}
 }
