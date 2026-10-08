@@ -19,7 +19,7 @@ import java.util.*;
 public class MainActivity extends Activity {
     static final int PICK_IMAGE=7001;
     final int ORANGE=Color.rgb(255,107,0), DARK=Color.rgb(32,35,42), CREAM=Color.rgb(255,249,243), MUTED=Color.rgb(111,114,121), GREEN=Color.rgb(32,150,100);
-    LinearLayout root, body, homeList;
+    LinearLayout root, body, homeList; ImageView activePreview; String activeImageUri="";
     ArrayList<Vication> trips=new ArrayList<>();
     String selectedTripId="";
     SharedPreferences prefs;
@@ -112,7 +112,7 @@ public class MainActivity extends Activity {
         preview.setOnClickListener(v->pickImage(preview,pt,chosen)); body.addView(gap(28));
         Button save=button("Save Vication"); save.setTextSize(17); save.setOnClickListener(v->{
             String n=name.getText().toString().trim(); if(n.isEmpty()){name.setError("Enter a Vication name");return;}
-            String id=UUID.randomUUID().toString(); String now=new SimpleDateFormat("d MMM yyyy",Locale.US).format(new Date());
+            if(chosen[0].isEmpty() && !activeImageUri.isEmpty()) chosen[0]=activeImageUri; String id=UUID.randomUUID().toString(); String now=new SimpleDateFormat("d MMM yyyy",Locale.US).format(new Date());
             trips.add(0,new Vication(id,n,chosen[0],now)); persist(); showHome();
         }); body.addView(save,lp(-1,60,0));
     }
