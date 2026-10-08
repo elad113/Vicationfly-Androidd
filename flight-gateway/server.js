@@ -174,6 +174,31 @@ async function travelpayouts(req) {
   return rows;
 }
 
+async function stayingapiHotels(q) {
+  const token = process.env.STAYINGAPI_KEY;
+  if (!token) throw new Error("STAYINGAPI_KEY is not configured");
+  const u = new URL("https://api.stayingapi.com/v1/search");
+  u.searchParams.set("location", q.destination || "");
+  u.searchParams.set("checkIn", q.checkIn);
+  u.searchParams.set("checkOut", q.checkOut);
+  u.searchParams.set("adults", String(q.adults || 1));
+  u.searchParams.set("children", String(q.children || 0));
+  u.searchParams.set("platforms", "booking,google");
+  u.searchParams.set("limit", "20");
+  const r = await fetch(u, { headers: { Authorization: "Bearer " + token, Accept: "application/json" } });
+  if (!r.ok) throw new Error("StayingAPI HTTP " + r.status);
+  const j = await r.json();
+  return (j?.data || []).map(x => ({
+    searchResultId: x.id || "", name: x.name || "Hotel", photo: x.photos?.[0]?.url || x.image || "",
+    address: x.address || "", city: x.city || q.destination || "", country: x.country || "",
+    description: x.description || "", rating: x.rating || x.guestRating || 0,
+    reviewScore: x.reviewScore || x.guestRating || 0, price: String(x.price?.amount ?? x.price ?? ""),
+    currency: x.price?.currency || x.currency || "USD", url: x.url || "",
+    platform: x.platform || "", listingId: x.platformListingId || x.listingId || "",
+    checkIn: q.checkIn, checkOut: q.checkOut
+  }));
+}
+
 const providers = { ignav, duffel, travelpayouts };
 
 app.get("/health", (_req, res) => {
@@ -249,6 +274,23 @@ app.post("/v1/hotels/rates", async (req,res)=>{
 app.post("/v1/hotels/quote", async (req,res)=>{
   const token=process.env.DUFFEL_ACCESS_TOKEN;if(!token)return res.status(503).json({error:"DUFFEL_ACCESS_TOKEN is not configured"});
   try{const id=req.body?.rateId;if(!id)return res.status(400).json({error:"rateId is required"});const r=await fetch("https://api.duffel.com/stays/quotes",{method:"POST",headers:{"Authorization":"Bearer "+token,"Duffel-Version":"v2","Content-Type":"application/json"},body:JSON.stringify({data:{rate_id:id}})});const j=await r.json();if(!r.ok)return res.status(r.status).json(j);res.json(j);}catch(e){res.status(502).json({error:e.message});}
+});
+
+app.post("/v1/flights/order", async (req, res) => {
+  const token = process.env.DUFFEL_ACCESS_TOKEN;
+  if (!token) return res.status(503).json({ error: "DUFFEL_ACCESS_TOKEN is not configured" });
+  const q = req.body || {};
+  if (!q.offerId || !Array.isArray(q.passengers) || !q.payment) return res.status(400).json({ error: "offerId, passengers and tokenized payment are required" });
+  try {
+    const services = Array.isArray(q.seatServiceIds) ? q.seatServiceIds.map(id => ({ id, quantity: 1 })) : [];
+    const providerAmount = Number(q.providerAmount || 0);
+    const fee = 5;
+    const total = providerAmount + fee;
+    const payment = { amount: total.toFixed(2), currency: q.currency || "USD", payment_method: q.payment };
+    const r = await fetch("https://api.duffel.com/air/orders", { method: "POST", headers: { Authorization: "Bearer "+token, "Duffel-Version":"v2", "Content-Type":"application/json", Accept:"application/json" }, body: JSON.stringify({ data: { type:"instant", selected_offers:[q.offerId], passengers:q.passengers, services, payments:[payment], metadata:{vicationfly_service_fee_usd:"5.00"} } }) });
+    const j = await r.json(); if(!r.ok) return res.status(r.status).json(j);
+    res.json({ order:j?.data || j, serviceFeeUsd:5, totalCharged:total });
+  } catch(e) { res.status(502).json({ error:e.message }); }
 });
 
 app.post("/v1/flights/search", async (req, res) => {
