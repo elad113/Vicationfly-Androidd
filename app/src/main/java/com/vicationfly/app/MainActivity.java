@@ -123,7 +123,7 @@ public class MainActivity extends Activity {
     String apiDate(String v){try{return new SimpleDateFormat("yyyy-MM-dd",Locale.US).format(new SimpleDateFormat("dd MMM yyyy",Locale.US).parse(v));}catch(Exception e){return v;}}
 
     void searchScreen(){screen="search";base();body.setPadding(dp(20),dp(20),dp(20),dp(24));TextView h=tv("Flight results",30,INK);h.setTypeface(Typeface.DEFAULT,Typeface.BOLD);body.addView(h,lp(-1,dp(42)));TextView route=tv(airportCode(from)+"  →  "+airportCode(to),15,MUTED);body.addView(route,lp(-1,dp(30)));
-        LinearLayout loading=col();loading.setGravity(Gravity.CENTER);loading.setPadding(dp(24),dp(28),dp(24,dp(28)));loading.setBackground(shape(Color.WHITE,24));ProgressBar p=new ProgressBar(this);loading.addView(p,lp(dp(44),dp(44)));TextView a=tv("Searching Flight MCP live cache…",17,INK);a.setGravity(17);loading.addView(a,lp(-1,dp(42)));TextView bb=tv("Real fare data only — no invented flights or prices.",13,MUTED);bb.setGravity(17);loading.addView(bb,lp(-1,dp(36)));body.addView(loading);new Thread(()->fetchFlightMcp()).start();
+        LinearLayout loading=col();loading.setGravity(Gravity.CENTER);loading.setPadding(dp(24),dp(28),dp(24),dp(28));loading.setBackground(shape(Color.WHITE,24));ProgressBar p=new ProgressBar(this);loading.addView(p,lp(dp(44),dp(44)));TextView a=tv("Searching Flight MCP live cache…",17,INK);a.setGravity(17);loading.addView(a,lp(-1,dp(42)));TextView bb=tv("Real fare data only — no invented flights or prices.",13,MUTED);bb.setGravity(17);loading.addView(bb,lp(-1,dp(36)));body.addView(loading);new Thread(()->fetchFlightMcp()).start();
     }
 
     void fetchFlightMcp(){try{
